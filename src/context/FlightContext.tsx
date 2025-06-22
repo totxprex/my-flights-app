@@ -61,27 +61,6 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return setResults(flights);
   };
 
-  const pollIncomplete = async (sessionId: string) => {
-    const url = `https://${process.env.REACT_APP_RAPIDAPI_HOST}/web/flights/search-incomplete?sessionId=${sessionId}`;
-
-    while (true) {
-      const resp = await fetch(url, {
-        headers: {
-          "X-RapidAPI-Key": process.env.REACT_APP_RAPIDAPI_KEY || "",
-          "X-RapidAPI-Host": process.env.REACT_APP_RAPIDAPI_HOST || "",
-        },
-      });
-
-      const body = await resp.json();
-
-      if (body.data.context?.status === "complete") {
-        return body;
-      }
-
-      await new Promise((res) => setTimeout(res, 10000));
-    }
-  };
-
   const fetchFlights = async () => {
     setLoading(true);
     setResults([]);
@@ -116,11 +95,7 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const body = await res.json();
       console.log("API Response:", body);
 
-      if (body.data.context?.status === "incomplete") {
-        const sessionId = body.data.context.sessionId;
-        const completeItinerary = await pollIncomplete(sessionId);
-        processItinerary(completeItinerary);
-      } else if (body.data.itineraries) {
+      if (body.data.itineraries) {
         processItinerary(body);
       } else {
         throw new Error("Invalid response format");
