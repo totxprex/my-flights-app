@@ -1,0 +1,19 @@
+.search-page {
+  max-width: 600px;
+  margin: auto;
+}
+.search-form {
+  display: grid;
+  gap: 1rem;
+}
+.search-form div {
+  display: flex;
+  flex-direction: column;
+}
+.search-form button {
+  padding: 0.5rem;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}

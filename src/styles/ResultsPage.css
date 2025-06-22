@@ -1,0 +1,24 @@
+.results-page {
+  display: flex;
+}
+.filter-panel {
+  width: 200px;
+  padding: 1rem;
+  border-right: 1px solid #ccc;
+}
+.flight-list {
+  flex: 1;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+@media (max-width: 768px) {
+  .results-page {
+    flex-direction: column;
+  }
+  .filter-panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+  }
+}

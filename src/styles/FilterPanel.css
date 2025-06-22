@@ -1,0 +1,11 @@
+.filter-panel h3 {
+  margin-top: 0;
+}
+.filter-panel div {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+.filter-panel input {
+  padding: 0.25rem;
+}
