@@ -12,7 +12,7 @@ const ResultsPage: React.FC = () => {
 
   useEffect(() => {
     fetchFlights();
-  }, [fetchFlights]);
+  }, []);
 
   useEffect(() => {
     const filteredFlights = results

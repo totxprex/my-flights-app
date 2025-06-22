@@ -73,6 +73,7 @@ const SearchPage: React.FC = () => {
                 <li
                   key={opt.PlaceId}
                   onClick={() => handleSelect(opt, "placeIdFrom", setOriginQuery, setOriginOptions)}
+                  style={{ cursor: "pointer" }}
                 >
                   {opt.Name} ({opt.PlaceId})
                 </li>
@@ -97,6 +98,7 @@ const SearchPage: React.FC = () => {
                 <li
                   key={opt.PlaceId}
                   onClick={() => handleSelect(opt, "placeIdTo", setDestQuery, setDestOptions)}
+                  style={{ cursor: "pointer" }}
                 >
                   {opt.Name} ({opt.PlaceId})
                 </li>
