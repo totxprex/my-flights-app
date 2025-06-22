@@ -78,7 +78,7 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return body;
       }
 
-      await new Promise((res) => setTimeout(res, 1000));
+      await new Promise((res) => setTimeout(res, 10000));
     }
   };
 
