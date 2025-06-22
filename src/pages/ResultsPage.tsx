@@ -10,19 +10,16 @@ const ResultsPage: React.FC = () => {
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxStops, setMaxStops] = useState<number>(5);
 
-  // Run fetchFlights only once, on mount
   useEffect(() => {
     fetchFlights();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Apply filters whenever results or criteria change
   useEffect(() => {
-    setFiltered(
-      results
-        .filter((f) => f.price >= minPrice && f.stops <= maxStops)
-        .sort((a, b) => a.price - b.price)
-    );
+    const filteredFlights = results
+      .filter((flight) => flight.price >= minPrice && flight.stops <= maxStops)
+      .sort((a, b) => a.price - b.price);
+
+    setFiltered(filteredFlights);
   }, [results, minPrice, maxStops]);
 
   return (
@@ -38,9 +35,9 @@ const ResultsPage: React.FC = () => {
         {loading ? (
           <p>Loading flights...</p>
         ) : filtered.length ? (
-          filtered.map((f) => <FlightCard key={f.id} flight={f} />)
+          filtered.map((flight) => <FlightCard key={flight.id} flight={flight} />)
         ) : (
-          <p>No flights match your criteria.</p>
+          <p>No flights found. Try adjusting your filters.</p>
         )}
       </div>
     </div>

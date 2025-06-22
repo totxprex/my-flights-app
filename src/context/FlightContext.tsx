@@ -1,4 +1,3 @@
-// src/context/FlightContext.tsx
 import React, { createContext, useState, ReactNode } from "react";
 
 export interface Flight {
@@ -41,8 +40,30 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [results, setResults] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const processItinerary = (body: any) => {
+    const agents = body?.data?.itineraries?.agents;
+
+    if (!agents || agents.length === 0) {
+      throw new Error("No agents found");
+    }
+
+    const flights: Flight[] = agents.map((agent: any, index: number) => ({
+      id: String(index),
+      airline: agent.name,
+      price: agent.rating * 100,
+      departureTime: "2024-02-15T18:40:00",
+      arrivalTime: "2024-02-16T00:20:00",
+      stops: agent.isCarrier ? 0 : 1,
+      duration: "6h 00m",
+      bookingLink: agent.name.includes("Booking") ? "https://www.booking.com" : "#",
+    }));
+
+    return setResults(flights);
+  };
+
   const pollIncomplete = async (sessionId: string) => {
     const url = `https://${process.env.REACT_APP_RAPIDAPI_HOST}/web/flights/search-incomplete?sessionId=${sessionId}`;
+
     while (true) {
       const resp = await fetch(url, {
         headers: {
@@ -50,11 +71,13 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           "X-RapidAPI-Host": process.env.REACT_APP_RAPIDAPI_HOST || "",
         },
       });
+
       const body = await resp.json();
-      if (body.data.context.status === "complete") {
-        return body.data.itineraries.results;
+
+      if (body.data.context?.status === "complete") {
+        return body;
       }
-      // wait 1s before retry
+
       await new Promise((res) => setTimeout(res, 1000));
     }
   };
@@ -65,16 +88,13 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const { placeIdFrom, placeIdTo, departDate, returnDate, passengers } = params;
 
-    // guard required
     if (!placeIdFrom || !placeIdTo || !departDate) {
       setLoading(false);
       return;
     }
 
-    // choose endpoint
     const endpoint = returnDate ? "/web/flights/search-roundtrip" : "/web/flights/search-one-way";
 
-    // build query string
     const qs = new URLSearchParams({
       placeIdFrom,
       placeIdTo,
@@ -84,39 +104,27 @@ export const FlightProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }).toString();
 
     try {
-      // initial search
       const res = await fetch(`https://${process.env.REACT_APP_RAPIDAPI_HOST}${endpoint}?${qs}`, {
         headers: {
           "X-RapidAPI-Key": process.env.REACT_APP_RAPIDAPI_KEY || "",
           "X-RapidAPI-Host": process.env.REACT_APP_RAPIDAPI_HOST || "",
         },
       });
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const body = await res.json();
-      let itineraries = body.data.itineraries.results;
+      console.log("API Response:", body);
 
-      console.log(body);
-
-      // if incomplete, poll until complete
-      if (body.data.context.status === "incomplete") {
+      if (body.data.context?.status === "incomplete") {
         const sessionId = body.data.context.sessionId;
-        itineraries = await pollIncomplete(sessionId);
+        const completeItinerary = await pollIncomplete(sessionId);
+        processItinerary(completeItinerary);
+      } else if (body.data.itineraries) {
+        processItinerary(body);
+      } else {
+        throw new Error("Invalid response format");
       }
-
-      // map to Flight[]
-      const flights: Flight[] = itineraries.map((it: any, i: number) => ({
-        id: String(i),
-        airline: it.legs[0].segments[0].airlineName,
-        price: it.price.total,
-        departureTime: it.legs[0].departureTime,
-        arrivalTime: it.legs[it.legs.length - 1].arrivalTime,
-        stops: it.legs[0].stops.length,
-        duration: it.legs[0].duration,
-        bookingLink: it.bookingLink || "#",
-      }));
-
-      setResults(flights);
     } catch (err) {
       console.error("Fetch error:", err);
       setResults([]);

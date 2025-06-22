@@ -15,9 +15,9 @@ const FlightCard: React.FC<{ flight: Flight }> = ({ flight }) => (
     </div>
     <div className="price">
       <strong>${flight.price.toFixed(2)}</strong>
-      <a href={flight.bookingLink} target="_blank" rel="noopener noreferrer">
+      {/* <a href={flight.bookingLink} target="_blank" rel="noopener noreferrer">
         Book
-      </a>
+      </a> */}
     </div>
   </div>
 );

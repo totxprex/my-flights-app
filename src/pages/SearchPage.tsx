@@ -1,24 +1,15 @@
-// src/pages/SearchPage.tsx
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FlightContext } from "../context/FlightContext";
+import { airports, Airport } from "../data/airports";
 import "../styles/SearchPage.css";
-
-interface AutoCompleteOption {
-  PlaceId: string;
-  Name: string;
-}
-
-const MIN_QUERY_LENGTH = 3;
-const DEBOUNCE_MS = 500;
 
 const SearchPage: React.FC = () => {
   const { setParams } = useContext(FlightContext);
   const [originQuery, setOriginQuery] = useState("");
   const [destQuery, setDestQuery] = useState("");
-  const [originOptions, setOriginOptions] = useState<AutoCompleteOption[]>([]);
-  const [destOptions, setDestOptions] = useState<AutoCompleteOption[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [originOptions, setOriginOptions] = useState<Airport[]>([]);
+  const [destOptions, setDestOptions] = useState<Airport[]>([]);
   const [form, setForm] = useState({
     placeIdFrom: "",
     placeIdTo: "",
@@ -27,77 +18,33 @@ const SearchPage: React.FC = () => {
     passengers: 1,
   });
   const navigate = useNavigate();
-  const originAbort = useRef<AbortController | null>(null);
-  const destAbort = useRef<AbortController | null>(null);
 
-  // fetch autocomplete helper
-  const fetchAuto = async (
-    query: string,
-    setOptions: React.Dispatch<React.SetStateAction<AutoCompleteOption[]>>,
-    abortRef: React.MutableRefObject<AbortController | null>
+  const handleQuery = (
+    text: string,
+    setQuery: React.Dispatch<React.SetStateAction<string>>,
+    setOptions: React.Dispatch<React.SetStateAction<Airport[]>>
   ) => {
-    setError(null);
-    // clear if too short
-    if (query.trim().length < MIN_QUERY_LENGTH) {
-      setOptions([]);
-      return;
-    }
-
-    // cancel previous
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    const qs = new URLSearchParams({ query: query.trim() }).toString();
-
-    try {
-      const res = await fetch(
-        `https://${process.env.REACT_APP_RAPIDAPI_HOST}/web/flights/auto-complete?${qs}`,
-        {
-          method: "GET",
-          headers: {
-            "X-RapidAPI-Key": process.env.REACT_APP_RAPIDAPI_KEY || "",
-            "X-RapidAPI-Host": process.env.REACT_APP_RAPIDAPI_HOST || "",
-          },
-          signal: controller.signal,
-        }
-      );
-      if (!res.ok) {
-        if (res.status === 429) throw new Error("Rate limit exceeded");
-        if (res.status === 403) throw new Error("Access forbidden");
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const body = await res.json();
-      setOptions(body.data || []);
-    } catch (err: any) {
-      if (err.name === "AbortError") return;
-      console.error("Auto-complete error:", err);
-      setError(err.message);
-      setOptions([]);
-    }
+    setQuery(text);
+    setOptions(
+      text.trim().length >= 2
+        ? airports.filter(
+            (a) =>
+              a.Name.toLowerCase().includes(text.toLowerCase()) ||
+              a.PlaceId.toLowerCase().startsWith(text.toLowerCase())
+          )
+        : []
+    );
   };
 
-  // debounced origin autocomplete
-  useEffect(() => {
-    const handle = setTimeout(
-      () => fetchAuto(originQuery, setOriginOptions, originAbort),
-      DEBOUNCE_MS
-    );
-    return () => clearTimeout(handle);
-  }, [originQuery]);
-
-  // debounced destination autocomplete
-  useEffect(() => {
-    const handle = setTimeout(() => fetchAuto(destQuery, setDestOptions, destAbort), DEBOUNCE_MS);
-    return () => clearTimeout(handle);
-  }, [destQuery]);
-
-  const handleSelect = (option: AutoCompleteOption, field: "placeIdFrom" | "placeIdTo") => {
+  const handleSelect = (
+    option: Airport,
+    field: "placeIdFrom" | "placeIdTo",
+    setQuery: React.Dispatch<React.SetStateAction<string>>,
+    setOptions: React.Dispatch<React.SetStateAction<Airport[]>>
+  ) => {
     setForm((prev) => ({ ...prev, [field]: option.PlaceId }));
-    if (field === "placeIdFrom") setOriginQuery(option.Name);
-    else setDestQuery(option.Name);
-    setOriginOptions([]);
-    setDestOptions([]);
+    setQuery(option.Name);
+    setOptions([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -115,17 +62,18 @@ const SearchPage: React.FC = () => {
           <input
             id="origin"
             value={originQuery}
-            onChange={(e) => {
-              setOriginQuery(e.target.value);
-              setForm((prev) => ({ ...prev, placeIdFrom: "" }));
-            }}
+            onChange={(e) => handleQuery(e.target.value, setOriginQuery, setOriginOptions)}
             placeholder="Enter city or airport"
             autoComplete="off"
+            required
           />
           {originOptions.length > 0 && (
             <ul className="options-list">
               {originOptions.map((opt) => (
-                <li key={opt.PlaceId} onClick={() => handleSelect(opt, "placeIdFrom")}>
+                <li
+                  key={opt.PlaceId}
+                  onClick={() => handleSelect(opt, "placeIdFrom", setOriginQuery, setOriginOptions)}
+                >
                   {opt.Name} ({opt.PlaceId})
                 </li>
               ))}
@@ -134,29 +82,28 @@ const SearchPage: React.FC = () => {
         </div>
 
         <div className="autocomplete">
-          <label htmlFor="dest">Destination</label>
+          <label htmlFor="destination">Destination</label>
           <input
-            id="dest"
+            id="destination"
             value={destQuery}
-            onChange={(e) => {
-              setDestQuery(e.target.value);
-              setForm((prev) => ({ ...prev, placeIdTo: "" }));
-            }}
+            onChange={(e) => handleQuery(e.target.value, setDestQuery, setDestOptions)}
             placeholder="Enter city or airport"
             autoComplete="off"
+            required
           />
           {destOptions.length > 0 && (
             <ul className="options-list">
               {destOptions.map((opt) => (
-                <li key={opt.PlaceId} onClick={() => handleSelect(opt, "placeIdTo")}>
+                <li
+                  key={opt.PlaceId}
+                  onClick={() => handleSelect(opt, "placeIdTo", setDestQuery, setDestOptions)}
+                >
                   {opt.Name} ({opt.PlaceId})
                 </li>
               ))}
             </ul>
           )}
         </div>
-
-        {error && <div className="error-message">{error}</div>}
 
         <div>
           <label>Depart</label>
